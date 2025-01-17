@@ -97,6 +97,8 @@ void write_buffer(char *buff, int len) {
     }
 }
 
+
+
 void replace_string(char *buff, const char *old_word, const char *new_word, int len) {
     char temp[BUFFER_SZ];
     char *pos, *start = buff;
