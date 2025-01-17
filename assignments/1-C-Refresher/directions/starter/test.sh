@@ -93,6 +93,7 @@ Buffer:  [Lets get a lot of words to test...................]" ]
     [ "$output" = "Not Implemented!" ]
 }
 
+
 @test "test shorter string replace" {
     run ./stringfun -x "This is a super long string for testing my program" program  app
     [ "$output" = "Buffer:  [This is a super long string for testing my app....]" ] || 
