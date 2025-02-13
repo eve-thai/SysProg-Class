@@ -32,57 +32,82 @@
  *  Standard Library Functions You Might Want To Consider Using
  *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
-int build_cmd_list(char *cmd_line, command_list_t *clist) {
-    if (!cmd_line || !clist) {
-        return ERR_TOO_MANY_COMMANDS;
-    }
+/**
+ * Trims leading and trailing spaces from a string in-place.
+ */
+void trim_whitespace(char *str)
+{
+    char *end;
 
-    memset(clist, 0, sizeof(command_list_t));
+    // Trim leading spaces
+    while (*str == SPACE_CHAR)
+        str++;
+
+    // Trim trailing spaces
+    if (*str == '\0') return;  // Empty string case
+
+    end = str + strlen(str) - 1;
+    while (end > str && *end == SPACE_CHAR)
+        end--;
+
+    *(end + 1) = '\0'; // Null-terminate the string
+}
+
+/**
+ * Parses the command line and populates command_list_t.
+ */
+int build_cmd_list(char *cmd_line, command_list_t *clist)
+{
+    if (cmd_line == NULL || strlen(cmd_line) == 0)
+        return WARN_NO_CMDS;
+
+    memset(clist, 0, sizeof(command_list_t)); // Clear clist structure
 
     char *token;
-    char *rest = cmd_line;
+    char *saveptr;
     int cmd_count = 0;
 
-    // Split commands by '|' character
-    while ((token = strtok_r(rest, PIPE_STRING, &rest))) {
-        // Trim leading spaces
-        while (*token == SPACE_CHAR) token++;
-
-        // Trim trailing spaces
-        char *end = token + strlen(token) - 1;
-        while (end > token && *end == SPACE_CHAR) *end-- = '\0';
-
-        if (*token == '\0') continue; // Ignore empty tokens
-
-        if (cmd_count >= CMD_MAX) {
+    // Split input line into commands using '|'
+    token = strtok_r(cmd_line, PIPE_STRING, &saveptr);
+    while (token != NULL)
+    {
+        if (cmd_count >= CMD_MAX)
             return ERR_TOO_MANY_COMMANDS;
+
+        trim_whitespace(token); // Remove spaces around command
+
+        if (strlen(token) == 0)
+        {
+            token = strtok_r(NULL, PIPE_STRING, &saveptr);
+            continue;
         }
 
-        command_t *cmd = &clist->commands[cmd_count];
-        memset(cmd, 0, sizeof(command_t));
+        // Parse command executable and arguments
+        char *arg_ptr;
+        arg_ptr = strchr(token, SPACE_CHAR); // Find first space
 
-        char *arg_pos = strchr(token, SPACE_CHAR);
-        if (arg_pos) {
-            *arg_pos = '\0'; // Split exe and args
-            arg_pos++;
-
-            // Trim leading spaces in args
-            while (*arg_pos == SPACE_CHAR) arg_pos++;
+        if (arg_ptr != NULL)
+        {
+            *arg_ptr = '\0'; // Split executable and arguments
+            arg_ptr++;       // Move to start of args
         }
 
-        // Validate command sizes
-        if (strlen(token) >= EXE_MAX || (arg_pos && strlen(arg_pos) >= ARG_MAX)) {
+        // Validate lengths
+        if (strlen(token) >= EXE_MAX || (arg_ptr && strlen(arg_ptr) >= ARG_MAX))
             return ERR_CMD_OR_ARGS_TOO_BIG;
-        }
 
-        strcpy(cmd->exe, token);
-        if (arg_pos) {
-            strcpy(cmd->args, arg_pos);
-        }
+        // Store in clist
+        strcpy(clist->commands[cmd_count].exe, token);
+        if (arg_ptr)
+            strcpy(clist->commands[cmd_count].args, arg_ptr);
+        else
+            clist->commands[cmd_count].args[0] = '\0'; // No args case
 
         cmd_count++;
+        token = strtok_r(NULL, PIPE_STRING, &saveptr); // Next command
     }
 
     clist->num = cmd_count;
-    return cmd_count > 0 ? OK : WARN_NO_CMDS;
+
+    return (cmd_count > 0) ? OK : WARN_NO_CMDS;
 }
