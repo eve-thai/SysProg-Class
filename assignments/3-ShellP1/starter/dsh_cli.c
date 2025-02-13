@@ -58,19 +58,19 @@ int main()
             printf("\n");
             break;
         }
-        // remove the trailing \n from cmd_buff
+
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
-         // Check for exit command
+
          if (strcmp(cmd_buff, EXIT_CMD) == 0)
          {
              exit(OK);
          }
  
-         // Parse the command using build_cmd_list
+
          rc = build_cmd_list(cmd_buff, &clist);
  
-         // Handle different return codes
+
          if (rc == WARN_NO_CMDS)
          {
              printf("%s", CMD_WARN_NO_CMD);
@@ -86,7 +86,7 @@ int main()
             printf(CMD_OK_HEADER, clist.num);
             for (int i = 0; i < clist.num; i++)
             {
-                // Print the executable and its arguments correctly
+
                 if (strlen(clist.commands[i].args) > 0)
                 {
                     printf("<%d> %s [%s]\n", i + 1, clist.commands[i].exe, clist.commands[i].args);
