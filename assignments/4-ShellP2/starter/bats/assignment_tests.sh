@@ -14,7 +14,7 @@
     current=$(pwd)
 
     cd /tmp
-    mkdir -p dsh-test
+    mkdir -p ~/tmp/dsh-test
 
     run "${current}/dsh" <<EOF                
 cd dsh-test
