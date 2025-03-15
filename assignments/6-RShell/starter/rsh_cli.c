@@ -12,8 +12,6 @@
 #include "rshlib.h"
 
 
-
-
 /*
  * exec_remote_cmd_loop(server_ip, port)
  *      server_ip:  a string in ip address format, indicating the servers IP
@@ -92,7 +90,71 @@
  */
 int exec_remote_cmd_loop(char *address, int port)
 {
-    return WARN_RDSH_NOT_IMPL;
+    int cli_socket;
+    char *request_buff = malloc(RDSH_COMM_BUFF_SZ);
+    char *resp_buff = malloc(RDSH_COMM_BUFF_SZ);
+
+    if (!request_buff || !resp_buff) {
+        return client_cleanup(-1, request_buff, resp_buff, ERR_MEMORY);
+    }
+
+
+    cli_socket = start_client(address, port);
+    if (cli_socket < 0) {
+        return client_cleanup(cli_socket, request_buff, resp_buff, ERR_RDSH_CLIENT);
+    }
+
+    while (1) {
+
+        printf(SH_PROMPT);
+        if (!fgets(request_buff, RDSH_COMM_BUFF_SZ, stdin)) {
+            break;
+        }
+
+
+        request_buff[strcspn(request_buff, "\n")] = '\0';
+
+       
+        if (send(cli_socket, request_buff, strlen(request_buff), 0) < 0) {
+            return client_cleanup(cli_socket, request_buff, resp_buff, ERR_RDSH_COMMUNICATION);
+        }
+
+
+        while (1) {
+            ssize_t bytes_received = recv(cli_socket, resp_buff, RDSH_COMM_BUFF_SZ - 1, 0);
+            if (bytes_received < 0) {
+                return client_cleanup(cli_socket, request_buff, resp_buff, ERR_RDSH_COMMUNICATION);
+            } else if (bytes_received == 0) {
+
+                return client_cleanup(cli_socket, request_buff, resp_buff, OK);
+            }
+
+
+            resp_buff[bytes_received] = '\0';
+
+
+            int is_eof = (resp_buff[bytes_received - 1] == RDSH_EOF_CHAR);
+            if (is_eof) {
+                resp_buff[bytes_received - 1] = '\0'; 
+            }
+
+
+            printf("%.*s", (int)bytes_received, resp_buff);
+
+            if (is_eof) {
+                break; 
+            }
+        }
+
+
+        if (strcmp(request_buff, "exit") == 0) {
+            return client_cleanup(cli_socket, request_buff, resp_buff, OK);
+        } else if (strcmp(request_buff, "stop-server") == 0) {
+            return client_cleanup(cli_socket, request_buff, resp_buff, OK);
+        }
+    }
+
+    return client_cleanup(cli_socket, request_buff, resp_buff, OK);
 }
 
 /*
@@ -119,7 +181,33 @@ int exec_remote_cmd_loop(char *address, int port)
  * 
  */
 int start_client(char *server_ip, int port){
-    return WARN_RDSH_NOT_IMPL;
+    int cli_socket;
+    struct sockaddr_in server_addr;
+
+
+    cli_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (cli_socket < 0) {
+        perror("socket");
+        return ERR_RDSH_CLIENT;
+    }
+
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, server_ip, &server_addr.sin_addr) <= 0) {
+        perror("inet_pton");
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
+
+    if (connect(cli_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connect");
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
+
+    return cli_socket;
 }
 
 /*

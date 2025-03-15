@@ -33,6 +33,10 @@ typedef struct command_list{
     cmd_buff_t commands[CMD_MAX];
 }command_list_t;
 
+typedef struct {
+    int client_socket;
+} thread_args_t;
+
 //Special character #defines
 #define SPACE_CHAR  ' '
 #define PIPE_CHAR   '|'
@@ -63,6 +67,8 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 int close_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
 int free_cmd_list(command_list_t *cmd_lst);
+_Bool is_append_redirect(const char *output_file);
+void trim_whitespace(char *str);
 
 //built in command stuff
 typedef enum {
